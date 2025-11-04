@@ -4,10 +4,11 @@ import { useState } from "react";
 import { Message, Conversation } from "@/lib/types";
 import { ChatList } from "@/components/chat-list";
 import { ChatInput } from "@/components/chat-input";
-import { Sidebar } from "@/components/sidebar";
+import { Sidebar, ChatRole } from "@/components/sidebar";
 import { Loader2 } from "lucide-react";
 
 export default function Home() {
+  const [currentRole, setCurrentRole] = useState<ChatRole>("geral");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<
     string | null
@@ -27,23 +28,6 @@ export default function Home() {
       updatedAt: new Date(),
     };
     return newConversation;
-  };
-
-  const handleNewChat = () => {
-    const newConversation = createNewConversation();
-    setConversations([newConversation, ...conversations]);
-    setCurrentConversationId(newConversation.id);
-  };
-
-  const handleSelectConversation = (id: string) => {
-    setCurrentConversationId(id);
-  };
-
-  const handleDeleteConversation = (id: string) => {
-    setConversations(conversations.filter((c) => c.id !== id));
-    if (currentConversationId === id) {
-      setCurrentConversationId(null);
-    }
   };
 
   const handleSendMessage = async (content: string) => {
@@ -79,6 +63,19 @@ export default function Home() {
 
     setIsLoading(true);
 
+    const getRoleSystemMessage = () => {
+      switch (currentRole) {
+        case "geral":
+          return "Você é um assistente geral útil e prestativo.";
+        case "tutor":
+          return "Você é um tutor de texto especializado. Ajude os usuários a melhorar sua escrita, gramática e estilo. Forneça feedback construtivo e sugestões de melhoria.";
+        case "analisador":
+          return "Você é um analisador de documentos especializado. Ajude os usuários a analisar, resumir e extrair informações importantes de documentos.";
+        default:
+          return "Você é um assistente útil.";
+      }
+    };
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -86,10 +83,13 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: updatedMessages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
+          messages: [
+            { role: "system", content: getRoleSystemMessage() },
+            ...updatedMessages.map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
+          ],
         }),
       });
 
@@ -142,20 +142,41 @@ export default function Home() {
     }
   };
 
+  const handleRoleChange = (role: ChatRole) => {
+    setCurrentRole(role);
+    setCurrentConversationId(null);
+  };
+
+  const handleDeleteAll = () => {
+    setConversations([]);
+    setCurrentConversationId(null);
+  };
+
+  const getRoleTitle = () => {
+    switch (currentRole) {
+      case "geral":
+        return "Geral";
+      case "tutor":
+        return "Tutor de Texto";
+      case "analisador":
+        return "Analisador de Documentos";
+      default:
+        return "Chatbot Moderno";
+    }
+  };
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar
-        conversations={conversations}
-        currentConversationId={currentConversationId}
-        onNewChat={handleNewChat}
-        onSelectConversation={handleSelectConversation}
-        onDeleteConversation={handleDeleteConversation}
+        currentRole={currentRole}
+        onRoleChange={handleRoleChange}
+        onDeleteAll={handleDeleteAll}
       />
       <div className="flex flex-col flex-1">
         <header className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
           <div className="flex h-14 items-center px-4">
             <h1 className="text-lg font-semibold">
-              {currentConversation?.title || "Modern Chatbot"}
+              {getRoleTitle()}
             </h1>
           </div>
         </header>
@@ -165,7 +186,7 @@ export default function Home() {
             <div className="flex items-center justify-center py-4 border-t border-border/40">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               <span className="ml-2 text-sm text-muted-foreground">
-                Thinking...
+                Pensando...
               </span>
             </div>
           )}

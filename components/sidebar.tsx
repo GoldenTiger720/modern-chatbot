@@ -1,72 +1,70 @@
 "use client";
 
-import { Conversation } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageSquarePlus, MessageSquare, Trash2 } from "lucide-react";
+import { MessageSquare, Pencil, FileText, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+export type ChatRole = "geral" | "tutor" | "analisador";
+
 interface SidebarProps {
-  conversations: Conversation[];
-  currentConversationId: string | null;
-  onNewChat: () => void;
-  onSelectConversation: (id: string) => void;
-  onDeleteConversation: (id: string) => void;
+  currentRole: ChatRole;
+  onRoleChange: (role: ChatRole) => void;
+  onDeleteAll?: () => void;
 }
 
-export function Sidebar({
-  conversations,
-  currentConversationId,
-  onNewChat,
-  onSelectConversation,
-  onDeleteConversation,
-}: SidebarProps) {
+export function Sidebar({ currentRole, onRoleChange, onDeleteAll }: SidebarProps) {
+  const menuItems = [
+    {
+      id: "geral" as ChatRole,
+      label: "Geral",
+      icon: MessageSquare,
+    },
+    {
+      id: "tutor" as ChatRole,
+      label: "Tutor de Texto",
+      icon: Pencil,
+    },
+    {
+      id: "analisador" as ChatRole,
+      label: "Analisador de Documentos",
+      icon: FileText,
+    },
+  ];
+
   return (
     <div className="flex flex-col h-full w-64 border-r border-border bg-muted/20">
-      <div className="p-4 border-b border-border">
-        <Button
-          onClick={onNewChat}
-          className="w-full justify-start gap-2"
-          variant="outline"
-        >
-          <MessageSquarePlus className="h-4 w-4" />
-          New Chat
-        </Button>
-      </div>
-      <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
-          {conversations.map((conversation) => (
-            <div
-              key={conversation.id}
-              className={cn(
-                "group relative flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent cursor-pointer transition-colors",
-                currentConversationId === conversation.id && "bg-accent"
-              )}
-              onClick={() => onSelectConversation(conversation.id)}
-            >
-              <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="flex-1 truncate text-sm">
-                {conversation.title}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteConversation(conversation.id);
-                }}
+      <div className="flex-1 p-4">
+        <div className="space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentRole === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onRoleChange(item.id)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors",
+                  isActive
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                    : "text-gray-300 hover:bg-muted/50"
+                )}
               >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
-          ))}
+                <Icon className="h-5 w-5 shrink-0" />
+                <span className="text-sm font-medium">{item.label}</span>
+              </button>
+            );
+          })}
         </div>
-      </ScrollArea>
+      </div>
       <div className="p-4 border-t border-border">
-        <div className="text-xs text-muted-foreground text-center">
-          Modern Chatbot
-        </div>
+        <Button
+          onClick={onDeleteAll}
+          variant="destructive"
+          className="w-full justify-center gap-2"
+        >
+          <Trash2 className="h-4 w-4" />
+          Excluir Tudo
+        </Button>
       </div>
     </div>
   );
