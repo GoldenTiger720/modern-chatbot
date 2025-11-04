@@ -5,7 +5,7 @@ import { Message, Conversation } from "@/lib/types";
 import { ChatList } from "@/components/chat-list";
 import { ChatInput } from "@/components/chat-input";
 import { Sidebar, ChatRole } from "@/components/sidebar";
-import { Loader2 } from "lucide-react";
+import { ThinkingAnimation } from "@/components/thinking-animation";
 
 export default function Home() {
   const [currentRole, setCurrentRole] = useState<ChatRole>("geral");
@@ -30,7 +30,7 @@ export default function Home() {
     return newConversation;
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, files?: File[]) => {
     let conversation = currentConversation;
 
     if (!conversation) {
@@ -39,10 +39,20 @@ export default function Home() {
       setCurrentConversationId(conversation.id);
     }
 
+    let messageContent = content;
+
+    // If files are attached, add file information to the message
+    if (files && files.length > 0) {
+      const fileNames = files.map(f => f.name).join(", ");
+      messageContent = content
+        ? `${content}\n\n[Documentos anexados: ${fileNames}]`
+        : `[Documentos anexados: ${fileNames}]`;
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content,
+      content: messageContent,
       timestamp: new Date(),
     };
 
@@ -64,34 +74,75 @@ export default function Home() {
     setIsLoading(true);
 
     const getRoleSystemMessage = () => {
+      let baseMessage = "";
       switch (currentRole) {
         case "geral":
-          return "Você é um assistente geral útil e prestativo.";
+          baseMessage = "Você é um assistente geral útil e prestativo.";
+          break;
         case "tutor":
-          return "Você é um tutor de texto especializado. Ajude os usuários a melhorar sua escrita, gramática e estilo. Forneça feedback construtivo e sugestões de melhoria.";
+          baseMessage = "Você é um tutor de texto especializado. Ajude os usuários a melhorar sua escrita, gramática e estilo. Forneça feedback construtivo e sugestões de melhoria.";
+          break;
         case "analisador":
-          return "Você é um analisador de documentos especializado. Ajude os usuários a analisar, resumir e extrair informações importantes de documentos.";
+          baseMessage = "Você é um analisador de documentos especializado. Ajude os usuários a analisar, resumir e extrair informações importantes de documentos.";
+          break;
         default:
-          return "Você é um assistente útil.";
+          baseMessage = "Você é um assistente útil.";
       }
+
+      if (files && files.length > 0) {
+        const fileInfo = files.map(f => `${f.name} (${(f.size / 1024).toFixed(2)} KB)`).join(", ");
+        baseMessage += ` O usuário anexou os seguintes documentos: ${fileInfo}. Por favor, analise e responda às perguntas sobre esses documentos.`;
+      }
+
+      return baseMessage;
     };
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: [
+      let response;
+
+      // If files are attached, use FormData
+      if (files && files.length > 0) {
+        const formData = new FormData();
+
+        // Add messages as JSON string
+        formData.append(
+          "messages",
+          JSON.stringify([
             { role: "system", content: getRoleSystemMessage() },
             ...updatedMessages.map((m) => ({
               role: m.role,
               content: m.content,
             })),
-          ],
-        }),
-      });
+          ])
+        );
+
+        // Add files
+        files.forEach((file) => {
+          formData.append("files", file);
+        });
+
+        response = await fetch("/api/chat", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        // Regular JSON request
+        response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: [
+              { role: "system", content: getRoleSystemMessage() },
+              ...updatedMessages.map((m) => ({
+                role: m.role,
+                content: m.content,
+              })),
+            ],
+          }),
+        });
+      }
 
       const data = await response.json();
 
@@ -181,16 +232,15 @@ export default function Home() {
           </div>
         </header>
         <main className="flex-1 overflow-hidden flex flex-col">
-          <ChatList messages={currentConversation?.messages || []} />
-          {isLoading && (
-            <div className="flex items-center justify-center py-4 border-t border-border/40">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              <span className="ml-2 text-sm text-muted-foreground">
-                Pensando...
-              </span>
-            </div>
-          )}
-          <ChatInput onSend={handleSendMessage} disabled={isLoading} />
+          <div className="flex-1 overflow-hidden">
+            <ChatList messages={currentConversation?.messages || []} />
+            {isLoading && <ThinkingAnimation />}
+          </div>
+          <ChatInput
+            onSend={handleSendMessage}
+            disabled={isLoading}
+            showAttachment={currentRole === "analisador"}
+          />
         </main>
       </div>
     </div>
