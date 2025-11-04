@@ -34,7 +34,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Send a message..."
+            placeholder="Envie uma mensagem..."
             disabled={disabled}
             className="flex min-h-[60px] max-h-[200px] w-full resize-none rounded-xl border border-input bg-background px-4 py-3 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             rows={1}
@@ -58,7 +58,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground text-center mt-2">
-          Press Enter to send, Shift+Enter for new line
+          Pressione Enter para enviar, Shift+Enter para nova linha
         </p>
       </div>
     </div>

@@ -37,9 +37,9 @@ export function ChatList({ messages }: ChatListProps) {
               />
             </svg>
           </div>
-          <h2 className="text-2xl font-semibold">How can I help you today?</h2>
+          <h2 className="text-2xl font-semibold">Como posso ajudá-lo hoje?</h2>
           <p className="text-muted-foreground">
-            Start a conversation by typing a message below.
+            Inicie uma conversa digitando uma mensagem abaixo.
           </p>
         </div>
       </div>
